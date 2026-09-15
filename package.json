@@ -1,0 +1,117 @@
+{
+  "name": "criticmarkup",
+  "displayName": "CriticMarkup Diff",
+  "description": "Render CriticMarkup suggestions the way git renders a diff — decorated in the source, hunks in the Markdown preview, and a live read-only .diff of the document with every suggestion rejected against every suggestion accepted.",
+  "version": "0.1.0",
+  "publisher": "DJRHails",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/DJRHails/vscode-criticmarkup.git"
+  },
+  "engines": {
+    "vscode": "^1.85.0",
+    "node": ">=22"
+  },
+  "categories": [
+    "Programming Languages",
+    "Other"
+  ],
+  "keywords": [
+    "criticmarkup",
+    "markdown",
+    "diff",
+    "tracked changes",
+    "review"
+  ],
+  "activationEvents": [
+    "onLanguage:markdown"
+  ],
+  "main": "./extension.js",
+  "scripts": {
+    "test": "node --test"
+  },
+  "contributes": {
+    "commands": [
+      {
+        "command": "criticmarkup.openUnifiedDiff",
+        "title": "Open as unified diff",
+        "category": "CriticMarkup",
+        "icon": "$(diff)"
+      },
+      {
+        "command": "criticmarkup.nextSuggestion",
+        "title": "Next suggestion",
+        "category": "CriticMarkup"
+      },
+      {
+        "command": "criticmarkup.previousSuggestion",
+        "title": "Previous suggestion",
+        "category": "CriticMarkup"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "criticmarkup.openUnifiedDiff",
+          "when": "editorLangId == markdown",
+          "group": "navigation"
+        }
+      ]
+    },
+    "snippets": [
+      {
+        "language": "markdown",
+        "path": "./snippets.json"
+      }
+    ],
+    "keybindings": [
+      {
+        "key": "ctrl+shift+a",
+        "command": "editor.action.insertSnippet",
+        "when": "editorTextFocus && editorLangId == markdown",
+        "args": {
+          "name": "Insertion"
+        }
+      },
+      {
+        "key": "ctrl+shift+d",
+        "command": "editor.action.insertSnippet",
+        "when": "editorTextFocus && editorLangId == markdown",
+        "args": {
+          "name": "Deletion"
+        }
+      },
+      {
+        "key": "ctrl+shift+s",
+        "command": "editor.action.insertSnippet",
+        "when": "editorTextFocus && editorLangId == markdown",
+        "args": {
+          "name": "Substitution"
+        }
+      },
+      {
+        "key": "ctrl+shift+c",
+        "command": "editor.action.insertSnippet",
+        "when": "editorTextFocus && editorLangId == markdown",
+        "args": {
+          "name": "Comment"
+        }
+      },
+      {
+        "key": "ctrl+shift+h",
+        "command": "editor.action.insertSnippet",
+        "when": "editorTextFocus && editorLangId == markdown",
+        "args": {
+          "name": "Highlight"
+        }
+      }
+    ],
+    "markdown": {
+      "markdownItPlugins": true,
+      "previewStyles": [
+        "./media/preview.css"
+      ]
+    }
+  }
+}

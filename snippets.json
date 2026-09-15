@@ -1,0 +1,27 @@
+{
+  "Insertion": {
+    "prefix": "insertion",
+    "body": "{++$1++}",
+    "description": "Text that appears if the suggestion is accepted."
+  },
+  "Deletion": {
+    "prefix": "deletion",
+    "body": "{--${TM_SELECTED_TEXT:$1}--}",
+    "description": "Text that goes if the suggestion is accepted."
+  },
+  "Substitution": {
+    "prefix": "substitution",
+    "body": "{~~${TM_SELECTED_TEXT:$1}~>$2~~}",
+    "description": "Replace the selection with something else."
+  },
+  "Comment": {
+    "prefix": "comment",
+    "body": "{>>$1<<}",
+    "description": "A remark carrying no edit."
+  },
+  "Highlight": {
+    "prefix": "highlight",
+    "body": "{==${TM_SELECTED_TEXT:$1}==}{>>$2<<}",
+    "description": "A remark anchored to the passage it is about."
+  }
+}

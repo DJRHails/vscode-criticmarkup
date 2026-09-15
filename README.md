@@ -1,0 +1,109 @@
+# CriticMarkup Diff
+
+[CriticMarkup](http://criticmarkup.com) is the plain-text vocabulary for tracked changes in
+markdown — `{++inserted++}`, `{--deleted--}`, `{~~old~>new~~}`, `{==highlight==}`,
+`{>>remark<<}`. Editors normally show it one of two ways: raw, or tinted by a grammar whose
+scopes no theme has heard of. Neither tells you what a reviewer needs to know, which is what the
+document says now and what it would say if you said yes.
+
+So this extension renders it the way the tool that already answers that question renders it. A
+marked-up document is a diff: reject every suggestion and you have the prose as it stands,
+accept every one and you have the prose as proposed. The rendering is literally
+`diff(reject_all, accept_all)`, laid out the way `git diff -U3` lays it out — and checked
+against real `git diff`, hunk for hunk, in the test suite.
+
+## The three surfaces
+
+- **A live `.diff` document** (`CriticMarkup: Open as unified diff`, or the ⟚ button in the
+  editor title bar). Opens beside the source, highlighted by VS Code's own `diff` grammar,
+  re-rendered as you type. `@@` headers carry the enclosing markdown heading, three lines of
+  context, `\ No newline at end of file` where it belongs. Strip the `#` review notes and it is
+  a patch `git apply` takes.
+- **The Markdown preview.** A change inside one line reads like `git diff --word-diff`: old
+  words struck through in red, new words in green, in place, so the sentence still reads as a
+  sentence. A change that crosses a line break reads like `git diff` proper — `@@ suggestion @@`
+  over `-` and `+` rows — because once a suggestion rewrites whole lines, reading it inline
+  means reading two interleaved versions of a paragraph.
+- **The markdown source itself**, decorated: the old side struck through in the theme's
+  removed-text red, the new side in its inserted-text green, delimiters dimmed, suggestions
+  marked in the overview ruler so you can see where they are in a long file.
+
+`CriticMarkup: Next suggestion` / `Previous suggestion` step through the review points — one per
+suggestion, one per comment thread.
+
+## What "correctly" is doing in the sentence
+
+Four things the obvious rendering gets wrong:
+
+- **A remark is not an insertion.** `{>>tighten this<<}` and `{==passage==}` leave the text
+  identical under both readings — they are review annotations, not edits. Rendering them as `+`
+  lines would claim the reviewer proposed their own comment as prose; dropping them would lose
+  half of what there is to answer. They render as notes hanging off their context line, the way
+  a review comment hangs off a line in a pull request, and a thread of adjacent remarks
+  (`{==quote==}{>>remark<<}{>>reply<<}`) renders as one thread.
+- **A marker is a character range; a diff is about lines.** A whole-paragraph insertion written
+  at the end of a line starts on a line it never alters. Reporting that line as `-` and `+`
+  would claim a rewrite git does not see, so blocks are trimmed to the lines that actually
+  differ — which is how a pure insertion comes out as `+` lines with no `-` line at all.
+- **Two suggestions on one line are one hunk line.** They collapse into a single `-`/`+` pair,
+  and suggestions on adjacent lines into one group with no context between them, because that is
+  what a diff of the two resolved documents looks like.
+- **Markup inside a code fence is a quoted sample.** A methods appendix showing the syntax is not
+  a suggestion, and neither the preview nor the diff resolves it. (Same for `` `{++inline++}` ``
+  code spans in the preview.)
+
+Two things it refuses to guess at: a marker left unterminated is not a suggestion (but the file
+still counts as carrying markup), and a marker nested inside another — which no single pass can
+resolve — is reported in the diff header rather than quietly half-resolved.
+
+## Why decorations rather than a TextMate grammar
+
+A grammar can only name scopes, and a scope like `criticmarkup.addition` is one no theme styles,
+so the markup comes out unstyled almost everywhere — which is the state this extension was
+written to replace. Decorations can reach for `diffEditor.insertedTextBackground` and
+`diffEditor.removedTextBackground`: whatever red and green the running theme uses for a diff,
+light or dark, is what a suggestion looks like. Colour is never the only signal — the old side is
+struck through, and the preview prefixes `+`, `−`, `💬` and `↳`.
+
+Delimiters are dimmed, not hidden. Hiding them (the `display: none` decoration trick) reads well
+until you edit the line: the cursor walks through characters that are not there, and a
+half-typed marker vanishes mid-keystroke.
+
+## Install
+
+```sh
+cd vscode-criticmarkup && npx --yes @vscode/vsce package
+code --install-extension criticmarkup-0.1.0.vsix
+```
+
+Or, for a working copy VS Code picks up on reload, symlink the checkout into
+`~/.vscode-server/extensions/` (remote) or `~/.vscode/extensions/` (local) and run
+`Developer: Reload Window`.
+
+## Development
+
+Everything that reads markup lives in `lib/`, is pure, and is tested without VS Code:
+
+| file | what it owns |
+| --- | --- |
+| `lib/criticmarkup.js` | the scanner, the two readings, comment threads, fenced-code skipping |
+| `lib/unified.js` | hunk geometry and the `.diff` rendering |
+| `lib/preview.js` | the markdown-it plugin behind the preview |
+| `lib/decorations.js` | which source ranges get painted how |
+
+```sh
+npm test    # node --test, no dependencies, no VS Code
+```
+
+The suite is in two halves. `test/git-parity.test.js` resolves fixtures both ways, hands the two
+versions to real `git diff -U3`, and requires our hunks back identical — same arithmetic, same
+grouping, same context, same heading trailer — plus a `git apply` round trip proving the
+rendering turns the rejected reading into the accepted one. `test/unified.test.js` covers what
+annotations add on top, which is precisely what git cannot see.
+
+CommonJS, no build step, no runtime dependencies: the VS Code extension host loads CommonJS, and
+a renderer this size does not need a bundler between the source and the thing that runs.
+
+## Licence
+
+MIT.
