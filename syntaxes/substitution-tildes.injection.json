@@ -1,7 +1,8 @@
 {
   "comment": "A substitution's delimiters, claimed before markdown's inline rules run, so that `{~~old~>new~~}` is never read as a `~~…~~` strikethrough. The extension styles nothing from here — the decorations do that, in the theme's own diff colours — and it claims nothing but the six characters of the two delimiters, so a real strikethrough, in a marker body or in the prose around it, stays markdown's. `~>` needs no pattern: one tilde cannot open a strikethrough.",
+  "comment-selector": "The three contexts that carry inline markdown, never the document root. Injected at the root, `\\{~~` beats the paragraph rule to column 0, and a line that opens with a marker never enters `meta.paragraph.markdown` — so it loses every other inline rule with it. Naming the contexts means the block rules run first and we are consulted inside them, where a marker actually sits. Code is excluded because markup in a fence, an indented block or a code span is a quoted sample.",
   "scopeName": "criticmarkup.substitution.tildes",
-  "injectionSelector": "L:text.html.markdown - (markup.fenced_code, markup.raw, markup.inline.raw, meta.embedded)",
+  "injectionSelector": "L:(meta.paragraph.markdown, markup.heading, markup.table) - (markup.fenced_code, markup.raw, markup.inline.raw, meta.embedded)",
   "patterns": [
     {
       "name": "punctuation.definition.criticmarkup.substitution.begin.markdown",

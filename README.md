@@ -103,6 +103,13 @@ arrives looking deleted. `syntaxes/substitution-tildes.injection.json` is a left
 claims the six characters of `{~~` and `~~}` — and only those, and never inside code — so the
 rule has nothing to pair. `~>` needs no pattern: one tilde cannot open a strikethrough.
 
+It injects into the three contexts that carry inline markdown — `meta.paragraph.markdown`,
+`markup.heading`, `markup.table` — and pointedly not into the document root. A root injection
+wins the race to column 0 against markdown's paragraph rule, so a line that _opens_ with a
+marker never becomes a paragraph and silently loses bold, code spans and every other inline
+rule. Naming the contexts lets the block rules run first and has us consulted inside them, where
+a marker actually sits.
+
 ## Install
 
 ```sh
@@ -136,6 +143,19 @@ versions to real `git diff -U3`, and requires our hunks back identical — same 
 grouping, same context, same heading trailer — plus a `git apply` round trip proving the
 rendering turns the rejected reading into the accepted one. `test/unified.test.js` covers what
 annotations add on top, which is precisely what git cannot see.
+
+The one thing `npm test` cannot check is the grammar, because tokenizing needs oniguruma and
+this extension carries no dependencies. `test/grammar.test.js` reasons about markdown's
+strikethrough rule as a regex; `tools/scope-check.js` runs the real tokenizer against VS Code's
+real markdown grammar, from a scratch directory, and is worth running for any change to the
+injection — it is what caught v0.3.0 injecting at the document root:
+
+```sh
+mkdir -p /tmp/scope-check && cd /tmp/scope-check
+npm install vscode-textmate vscode-oniguruma
+curl -sLo md.json https://raw.githubusercontent.com/microsoft/vscode/main/extensions/markdown-basics/syntaxes/markdown.tmLanguage.json
+NODE_PATH=$PWD/node_modules node <checkout>/tools/scope-check.js md.json [file.md]
+```
 
 CommonJS, no build step, no runtime dependencies: the VS Code extension host loads CommonJS, and
 a renderer this size does not need a bundler between the source and the thing that runs.

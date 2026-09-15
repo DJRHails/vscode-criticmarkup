@@ -82,10 +82,19 @@ test("a real strikethrough inside a marker body still strikes through", () => {
 });
 
 test("the injection runs before markdown's own rules and keeps out of code", () => {
-  assert.match(GRAMMAR.injectionSelector, /^L:text\.html\.markdown\b/);
+  assert.match(GRAMMAR.injectionSelector, /^L:/);
   for (const quoted of ["markup.fenced_code", "markup.raw", "markup.inline.raw", "meta.embedded"]) {
     assert.ok(GRAMMAR.injectionSelector.includes(quoted), `${quoted} is not excluded`);
   }
+});
+
+test("the injection names the contexts a marker sits in, never the document root", () => {
+  // At the root, `{~~` beats markdown's paragraph rule to column 0 and a line that opens with a
+  // marker never becomes a paragraph — losing bold, code spans and every other inline rule with
+  // it. v0.3.0 shipped that; `tools/scope-check.js` is what caught it.
+  const [contexts] = GRAMMAR.injectionSelector.split(" - ");
+  assert.equal(contexts, "L:(meta.paragraph.markdown, markup.heading, markup.table)");
+  assert.ok(!/L:text\.html\.markdown\b/.test(GRAMMAR.injectionSelector));
 });
 
 test("the manifest injects the grammar into markdown, and only there", () => {

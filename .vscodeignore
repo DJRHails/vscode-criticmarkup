@@ -3,3 +3,4 @@ test/
 .data/
 *.vsix
 .vscode-test/
+tools/
