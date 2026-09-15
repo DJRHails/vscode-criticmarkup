@@ -2,7 +2,7 @@
   "name": "criticmarkup",
   "displayName": "CriticMarkup Diff",
   "description": "Render CriticMarkup suggestions the way git renders a diff — decorated in the source, hunks in the Markdown preview, and a live read-only .diff of the document with every suggestion rejected against every suggestion accepted.",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "publisher": "DJRHails",
   "license": "MIT",
   "repository": {
@@ -48,6 +48,24 @@
         "command": "criticmarkup.previousSuggestion",
         "title": "Previous suggestion",
         "category": "CriticMarkup"
+      },
+      {
+        "command": "criticmarkup.accept",
+        "title": "Accept the suggestion at the cursor",
+        "category": "CriticMarkup",
+        "enablement": "editorLangId == markdown"
+      },
+      {
+        "command": "criticmarkup.reject",
+        "title": "Reject the suggestion at the cursor",
+        "category": "CriticMarkup",
+        "enablement": "editorLangId == markdown"
+      },
+      {
+        "command": "criticmarkup.resolve",
+        "title": "Resolve the comment thread at the cursor",
+        "category": "CriticMarkup",
+        "enablement": "editorLangId == markdown"
       }
     ],
     "menus": {

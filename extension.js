@@ -9,6 +9,9 @@
  * - a read-only `.diff` document, which is the rendering git itself would print
  *   (lib/unified.js), opened beside the source and kept live as you type.
  *
+ * Hovering a suggestion on any of them offers the decision itself — Accept, Reject, Resolve
+ * (lib/review.js) — as command links in the hover.
+ *
  * Everything that reads markup lives in lib/, is pure, and is tested without VS Code.
  */
 
@@ -17,6 +20,7 @@ const vscode = require("vscode");
 const { hasMarkup, isChange, scan, threads } = require("./lib/criticmarkup");
 const { decorationRegions } = require("./lib/decorations");
 const { criticMarkupPlugin } = require("./lib/preview");
+const { ACTIONS, editFor, hoverModel, unitAt } = require("./lib/review");
 const { renderUnifiedDiff } = require("./lib/unified");
 
 /** Scheme of the read-only unified-diff documents. */
@@ -152,6 +156,61 @@ function jump(forwards) {
   );
 }
 
+/** A `command:` link the hover can offer, carrying the offset of the unit it acts on. */
+function actionLink(action) {
+  const args = encodeURIComponent(JSON.stringify([action.offset]));
+  return `[${action.label}](command:${action.command}?${args})`;
+}
+
+/**
+ * The hover over a suggestion: what it would do, why the judge said so, and the decision.
+ *
+ * Only this extension's own commands are trusted in the markdown, and every piece of text the
+ * document supplied is either escaped or inside a code block — a suggestion is untrusted input,
+ * and a trusted hover that rendered it raw would let a document plant a link to any command.
+ */
+function provideHover(document, position) {
+  const source = document.getText();
+  const unit = unitAt(source, document.offsetAt(position));
+  if (!unit) return null;
+  const model = hoverModel(unit);
+  const markdown = new vscode.MarkdownString();
+  markdown.isTrusted = { enabledCommands: Object.values(ACTIONS).map((a) => a.command) };
+  markdown.appendMarkdown(`**${model.title}**\n\n`);
+  if (model.diff) markdown.appendCodeblock(model.diff, "diff");
+  for (const note of model.notes) markdown.appendMarkdown(`\n> ${note}\n`);
+  markdown.appendMarkdown(`\n\n${model.actions.map(actionLink).join(" · ")}`);
+  return new vscode.Hover(
+    markdown,
+    new vscode.Range(document.positionAt(model.range.start), document.positionAt(model.range.end)),
+  );
+}
+
+/**
+ * Take the decision at `offset`, or at the cursor when invoked from the command palette.
+ *
+ * The document is re-read and re-scanned here rather than trusting the hover that offered the
+ * link: by the time it is clicked the text may have moved, and splicing at a stale offset would
+ * corrupt the prose rather than fail.
+ */
+async function act(action, offset) {
+  const editor = vscode.window.activeTextEditor;
+  if (!editor) return;
+  const source = editor.document.getText();
+  const at = offset ?? editor.document.offsetAt(editor.selection.active);
+  const unit = unitAt(source, at);
+  const edit = unit && editFor(source, unit, action);
+  if (!edit) {
+    vscode.window.setStatusBarMessage(`CriticMarkup: nothing to ${action} here`, 2000);
+    return;
+  }
+  const range = new vscode.Range(
+    editor.document.positionAt(edit.start),
+    editor.document.positionAt(edit.end),
+  );
+  await editor.edit((builder) => builder.replace(range, edit.replacement));
+}
+
 function activate(context) {
   const types = buildTypes();
   const provider = new UnifiedDiffProvider();
@@ -164,6 +223,10 @@ function activate(context) {
     vscode.commands.registerCommand("criticmarkup.openUnifiedDiff", openUnifiedDiff),
     vscode.commands.registerCommand("criticmarkup.nextSuggestion", () => jump(true)),
     vscode.commands.registerCommand("criticmarkup.previousSuggestion", () => jump(false)),
+    vscode.commands.registerCommand(ACTIONS.accept.command, (at) => act("accept", at)),
+    vscode.commands.registerCommand(ACTIONS.reject.command, (at) => act("reject", at)),
+    vscode.commands.registerCommand(ACTIONS.resolve.command, (at) => act("resolve", at)),
+    vscode.languages.registerHoverProvider({ language: "markdown" }, { provideHover }),
     vscode.window.onDidChangeActiveTextEditor(repaint),
     vscode.workspace.onDidChangeTextDocument((event) => {
       provider.refresh(event.document.uri);

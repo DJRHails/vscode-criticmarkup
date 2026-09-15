@@ -31,6 +31,28 @@ against real `git diff`, hunk for hunk, in the test suite.
 `CriticMarkup: Next suggestion` / `Previous suggestion` step through the review points — one per
 suggestion, one per comment thread.
 
+## Deciding, from the hover
+
+Hover a suggestion and the hover shows what it would do — the change as `-`/`+` diff lines, and
+the reason if the author of the suggestion gave one — over **Accept · Reject**. A comment thread
+offers **Resolve**: no edit was proposed, so there is nothing to accept; the markers go and the
+passage they were about stays. The same three are in the command palette, acting at the cursor.
+
+Every action is a normal editor edit, so <kbd>ctrl</kbd>+<kbd>z</kbd> puts it back.
+
+**The unit of review is the decision, not the marker.** `{~~old~>new~~}{>>why<<}` — a suggestion
+and the reason for it, which is what `lab.utils.criticmarkup.suggestion` emits and what the
+notes site writes back — settles as one thing: accept the edit and the note goes with it.
+Leaving it behind would turn one decision into two chores, and the second one has nothing left
+to decide. A thread that anchors to a passage of its own (`{==quote==}{>>remark<<}`) is separate,
+because it is a separate question.
+
+Two guards, because a suggestion is untrusted input: the hover markdown trusts only this
+extension's own three commands, so a document cannot plant a link to any other command, and
+every piece of text the document supplied is escaped or inside a code block. The offset in a
+hover link is re-scanned when it is clicked rather than trusted — by then the text may have
+moved, and splicing at a stale offset would corrupt prose rather than fail.
+
 ## What "correctly" is doing in the sentence
 
 Four things the obvious rendering gets wrong:
@@ -73,7 +95,7 @@ half-typed marker vanishes mid-keystroke.
 
 ```sh
 cd vscode-criticmarkup && npx --yes @vscode/vsce package
-code --install-extension criticmarkup-0.1.0.vsix
+code --install-extension criticmarkup-*.vsix
 ```
 
 Or, for a working copy VS Code picks up on reload, symlink the checkout into
@@ -90,6 +112,7 @@ Everything that reads markup lives in `lib/`, is pure, and is tested without VS 
 | `lib/unified.js` | hunk geometry and the `.diff` rendering |
 | `lib/preview.js` | the markdown-it plugin behind the preview |
 | `lib/decorations.js` | which source ranges get painted how |
+| `lib/review.js` | what one hover covers, what it offers, and the edit each offer makes |
 
 ```sh
 npm test    # node --test, no dependencies, no VS Code
