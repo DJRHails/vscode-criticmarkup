@@ -1,0 +1,15 @@
+{
+  "comment": "A substitution's delimiters, claimed before markdown's inline rules run, so that `{~~old~>new~~}` is never read as a `~~…~~` strikethrough. The extension styles nothing from here — the decorations do that, in the theme's own diff colours — and it claims nothing but the six characters of the two delimiters, so a real strikethrough, in a marker body or in the prose around it, stays markdown's. `~>` needs no pattern: one tilde cannot open a strikethrough.",
+  "scopeName": "criticmarkup.substitution.tildes",
+  "injectionSelector": "L:text.html.markdown - (markup.fenced_code, markup.raw, markup.inline.raw, meta.embedded)",
+  "patterns": [
+    {
+      "name": "punctuation.definition.criticmarkup.substitution.begin.markdown",
+      "match": "\\{~~"
+    },
+    {
+      "name": "punctuation.definition.criticmarkup.substitution.end.markdown",
+      "match": "~~\\}"
+    }
+  ]
+}

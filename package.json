@@ -1,32 +1,25 @@
 {
   "name": "criticmarkup",
   "displayName": "CriticMarkup Diff",
+  "version": "0.3.0",
   "description": "Render CriticMarkup suggestions the way git renders a diff — decorated in the source, hunks in the Markdown preview, and a live read-only .diff of the document with every suggestion rejected against every suggestion accepted.",
-  "version": "0.2.0",
-  "publisher": "DJRHails",
+  "categories": [
+    "Other",
+    "Programming Languages"
+  ],
+  "keywords": [
+    "criticmarkup",
+    "diff",
+    "markdown",
+    "review",
+    "tracked changes"
+  ],
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/DJRHails/vscode-criticmarkup.git"
   },
-  "engines": {
-    "vscode": "^1.85.0",
-    "node": ">=22"
-  },
-  "categories": [
-    "Programming Languages",
-    "Other"
-  ],
-  "keywords": [
-    "criticmarkup",
-    "markdown",
-    "diff",
-    "tracked changes",
-    "review"
-  ],
-  "activationEvents": [
-    "onLanguage:markdown"
-  ],
+  "publisher": "DJRHails",
   "main": "./extension.js",
   "scripts": {
     "test": "node --test"
@@ -77,6 +70,15 @@
         }
       ]
     },
+    "grammars": [
+      {
+        "scopeName": "criticmarkup.substitution.tildes",
+        "path": "./syntaxes/substitution-tildes.injection.json",
+        "injectTo": [
+          "text.html.markdown"
+        ]
+      }
+    ],
     "snippets": [
       {
         "language": "markdown",
@@ -131,5 +133,12 @@
         "./media/preview.css"
       ]
     }
+  },
+  "activationEvents": [
+    "onLanguage:markdown"
+  ],
+  "engines": {
+    "node": ">=22",
+    "vscode": "^1.85.0"
   }
 }

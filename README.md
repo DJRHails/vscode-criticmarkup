@@ -55,7 +55,7 @@ moved, and splicing at a stale offset would corrupt prose rather than fail.
 
 ## What "correctly" is doing in the sentence
 
-Four things the obvious rendering gets wrong:
+Five things the obvious rendering gets wrong:
 
 - **A remark is not an insertion.** `{>>tighten this<<}` and `{==passage==}` leave the text
   identical under both readings — they are review annotations, not edits. Rendering them as `+`
@@ -73,6 +73,12 @@ Four things the obvious rendering gets wrong:
 - **Markup inside a code fence is a quoted sample.** A methods appendix showing the syntax is not
   a suggestion, and neither the preview nor the diff resolves it. (Same for `` `{++inline++}` ``
   code spans in the preview.)
+- **A substitution's tildes are not a strikethrough.** `{~~old~>new~~}` is, to markdown, a
+  perfectly ordinary `~~…~~` run, so the theme strikes the whole marker through — new side
+  included, which reads as "delete this" about the text the suggestion is asking _for_. An
+  injection grammar claims the two delimiters before markdown's inline rules run, and claims
+  nothing else, so a real `~~strikethrough~~` — in a marker body or in the prose around it —
+  is still the author's.
 
 Two things it refuses to guess at: a marker left unterminated is not a suggestion (but the file
 still counts as carrying markup), and a marker nested inside another — which no single pass can
@@ -91,6 +97,12 @@ Delimiters are dimmed, not hidden. Hiding them (the `display: none` decoration t
 until you edit the line: the cursor walks through characters that are not there, and a
 half-typed marker vanishes mid-keystroke.
 
+There is one grammar, and it styles nothing. Markdown's own strikethrough rule matches
+`{~~old~>new~~}` end to end, so without it the theme strikes the marker through and the new side
+arrives looking deleted. `syntaxes/substitution-tildes.injection.json` is a left-injection that
+claims the six characters of `{~~` and `~~}` — and only those, and never inside code — so the
+rule has nothing to pair. `~>` needs no pattern: one tilde cannot open a strikethrough.
+
 ## Install
 
 ```sh
@@ -106,13 +118,14 @@ Or, for a working copy VS Code picks up on reload, symlink the checkout into
 
 Everything that reads markup lives in `lib/`, is pure, and is tested without VS Code:
 
-| file | what it owns |
-| --- | --- |
-| `lib/criticmarkup.js` | the scanner, the two readings, comment threads, fenced-code skipping |
-| `lib/unified.js` | hunk geometry and the `.diff` rendering |
-| `lib/preview.js` | the markdown-it plugin behind the preview |
-| `lib/decorations.js` | which source ranges get painted how |
-| `lib/review.js` | what one hover covers, what it offers, and the edit each offer makes |
+| file                                          | what it owns                                                         |
+| --------------------------------------------- | -------------------------------------------------------------------- |
+| `lib/criticmarkup.js`                         | the scanner, the two readings, comment threads, fenced-code skipping |
+| `lib/unified.js`                              | hunk geometry and the `.diff` rendering                              |
+| `lib/preview.js`                              | the markdown-it plugin behind the preview                            |
+| `lib/decorations.js`                          | which source ranges get painted how                                  |
+| `lib/review.js`                               | what one hover covers, what it offers, and the edit each offer makes |
+| `syntaxes/substitution-tildes.injection.json` | keeping markdown's strikethrough off `{~~…~~}`                       |
 
 ```sh
 npm test    # node --test, no dependencies, no VS Code
