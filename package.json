@@ -1,7 +1,7 @@
 {
   "name": "criticmarkup",
   "displayName": "CriticMarkup Diff",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Render CriticMarkup suggestions the way git renders a diff — decorated in the source, hunks in the Markdown preview, and a live read-only .diff of the document with every suggestion rejected against every suggestion accepted.",
   "categories": [
     "Other",
@@ -44,19 +44,31 @@
       },
       {
         "command": "criticmarkup.accept",
-        "title": "Accept the suggestion at the cursor",
+        "title": "Accept the suggestion at the cursor, or every one in the selection",
         "category": "CriticMarkup",
         "enablement": "editorLangId == markdown"
       },
       {
         "command": "criticmarkup.reject",
-        "title": "Reject the suggestion at the cursor",
+        "title": "Reject the suggestion at the cursor, or every one in the selection",
         "category": "CriticMarkup",
         "enablement": "editorLangId == markdown"
       },
       {
         "command": "criticmarkup.resolve",
-        "title": "Resolve the comment thread at the cursor",
+        "title": "Resolve the comment thread at the cursor, or every one in the selection",
+        "category": "CriticMarkup",
+        "enablement": "editorLangId == markdown"
+      },
+      {
+        "command": "criticmarkup.acceptAll",
+        "title": "Accept every suggestion in the file",
+        "category": "CriticMarkup",
+        "enablement": "editorLangId == markdown"
+      },
+      {
+        "command": "criticmarkup.rejectAll",
+        "title": "Reject every suggestion in the file",
         "category": "CriticMarkup",
         "enablement": "editorLangId == markdown"
       }

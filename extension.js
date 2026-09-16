@@ -20,7 +20,7 @@ const vscode = require("vscode");
 const { hasMarkup, isChange, scan, threads } = require("./lib/criticmarkup");
 const { decorationRegions } = require("./lib/decorations");
 const { criticMarkupPlugin } = require("./lib/preview");
-const { ACTIONS, editFor, hoverModel, unitAt } = require("./lib/review");
+const { ACTIONS, editFor, editsIn, hoverModel, unitAt } = require("./lib/review");
 const { renderUnifiedDiff } = require("./lib/unified");
 
 /** Scheme of the read-only unified-diff documents. */
@@ -205,29 +205,87 @@ function provideHover(document, position) {
   );
 }
 
+/** The offset range a selection covers; an empty selection is the cursor. */
+function offsets(document, selection) {
+  return { start: document.offsetAt(selection.start), end: document.offsetAt(selection.end) };
+}
+
 /**
- * Take the decision at `offset`, or at the cursor when invoked from the command palette.
+ * The splices a command makes: one unit at `offset` for a hover link, else every unit the
+ * selections touch — which for a bare cursor is the one unit it sits in.
+ *
+ * Two cursors inside one unit would otherwise each ask for the same splice, and a second
+ * replace over the same range is an error rather than a no-op, so they are settled by start.
+ */
+function splicesFor(document, action, offset) {
+  const source = document.getText();
+  if (offset !== undefined) {
+    const unit = unitAt(source, offset);
+    const edit = unit && editFor(source, unit, action);
+    return edit ? [edit] : [];
+  }
+  const found = new Map();
+  for (const selection of vscode.window.activeTextEditor.selections) {
+    for (const edit of editsIn(source, offsets(document, selection), action)) {
+      found.set(edit.start, edit);
+    }
+  }
+  return [...found.values()];
+}
+
+/**
+ * Take the decision at `offset`, or across the selection when invoked from the palette.
  *
  * The document is re-read and re-scanned here rather than trusting the hover that offered the
  * link: by the time it is clicked the text may have moved, and splicing at a stale offset would
- * corrupt the prose rather than fail.
+ * corrupt the prose rather than fail. Every splice goes into one `edit`, so a bulk action is one
+ * undo away from where it started.
  */
 async function act(action, offset) {
   const editor = vscode.window.activeTextEditor;
   if (!editor) return;
-  const source = editor.document.getText();
-  const at = offset ?? editor.document.offsetAt(editor.selection.active);
-  const unit = unitAt(source, at);
-  const edit = unit && editFor(source, unit, action);
-  if (!edit) {
+  const edits = splicesFor(editor.document, action, offset);
+  if (!edits.length) {
     vscode.window.setStatusBarMessage(`CriticMarkup: nothing to ${action} here`, 2000);
     return;
   }
-  const range = new vscode.Range(
-    editor.document.positionAt(edit.start),
-    editor.document.positionAt(edit.end),
+  await apply(editor, edits);
+}
+
+/** Every splice in one edit, so a bulk action is one undo away from where it started. */
+function apply(editor, edits) {
+  return editor.edit((builder) => {
+    for (const edit of edits) {
+      const range = new vscode.Range(
+        editor.document.positionAt(edit.start),
+        editor.document.positionAt(edit.end),
+      );
+      builder.replace(range, edit.replacement);
+    }
+  });
+}
+
+/**
+ * Settle every suggestion in the file at once.
+ *
+ * Comment threads are left where they are: a remark proposed no edit, so there is nothing in it
+ * to accept or reject, and sweeping the reviewer's notes away as a side effect of taking their
+ * suggestions is not a decision anyone asked for. They keep their own Resolve.
+ */
+async function actOnFile(action) {
+  const editor = vscode.window.activeTextEditor;
+  if (!editor || editor.document.languageId !== "markdown") return;
+  const source = editor.document.getText();
+  const edits = editsIn(source, { start: 0, end: source.length }, action);
+  if (!edits.length) {
+    vscode.window.setStatusBarMessage(`CriticMarkup: no suggestion to ${action}`, 2000);
+    return;
+  }
+  await apply(editor, edits);
+  vscode.window.setStatusBarMessage(
+    `CriticMarkup: ${action}ed ${edits.length} suggestion${edits.length === 1 ? "" : "s"}`,
+    3000,
   );
-  await editor.edit((builder) => builder.replace(range, edit.replacement));
 }
 
 function activate(context) {
@@ -245,6 +303,8 @@ function activate(context) {
     vscode.commands.registerCommand(ACTIONS.accept.command, (at) => act("accept", at)),
     vscode.commands.registerCommand(ACTIONS.reject.command, (at) => act("reject", at)),
     vscode.commands.registerCommand(ACTIONS.resolve.command, (at) => act("resolve", at)),
+    vscode.commands.registerCommand("criticmarkup.acceptAll", () => actOnFile("accept")),
+    vscode.commands.registerCommand("criticmarkup.rejectAll", () => actOnFile("reject")),
     vscode.languages.registerHoverProvider({ language: "markdown" }, { provideHover }),
     vscode.window.onDidChangeActiveTextEditor(repaint),
     vscode.workspace.onDidChangeTextDocument((event) => {

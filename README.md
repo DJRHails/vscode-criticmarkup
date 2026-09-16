@@ -43,6 +43,18 @@ The hover deliberately does not preview the change or repeat the reason. Both ar
 screen — the marker is decorated in place and its note renders beside it — and a popover big
 enough to hold them covers the sentence you are reading it against.
 
+**In bulk, the way the merge-conflict editor does it.** `Accept` and `Reject` from the palette
+take the suggestion at the cursor, or — with text selected — every suggestion the selection
+touches, in one edit and so one undo. `CriticMarkup: Accept every suggestion in the file` and
+its `Reject` twin do the whole document.
+
+A selection that only clips a marker still settles the whole of it: half a marker is not a
+decision, and splicing one would leave the other half behind as broken markup. Comment threads
+are never swept up by a bulk accept or reject — a remark proposed no edit, so there is nothing
+in it to accept, and deleting the reviewer's notes as a side effect of taking their suggestions
+is not a decision anyone asked for. Threads resolve on their own, at the cursor or across a
+selection.
+
 Every action is a normal editor edit, so <kbd>ctrl</kbd>+<kbd>z</kbd> puts it back.
 
 **The unit of review is the decision, not the marker.** `{~~old~>new~~}{>>why<<}` — a suggestion

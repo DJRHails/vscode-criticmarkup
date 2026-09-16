@@ -8,7 +8,9 @@
  */
 
 const assert = require("node:assert/strict");
+const fs = require("node:fs");
 const Module = require("node:module");
+const path = require("node:path");
 const { test } = require("node:test");
 
 function fakeVscode() {
@@ -124,6 +126,7 @@ function openEditor(vscode, text, uri = "file:///doc.md") {
   const editor = {
     document,
     selection: { active: { offset: 0 } },
+    selections: [{ start: { offset: 0 }, end: { offset: 0 } }],
     setDecorations: (type, ranges) => painted.set(type, ranges),
     revealRange: () => {},
     edit: async (build) => build({ replace: (range, text) => applied.push({ range, text }) }),
@@ -158,14 +161,25 @@ test("activation registers the commands, the diff provider, and disposes what it
   const { vscode, context } = activated("plain prose\n");
   assert.deepEqual([...vscode.registered.commands.keys()].sort(), [
     "criticmarkup.accept",
+    "criticmarkup.acceptAll",
     "criticmarkup.nextSuggestion",
     "criticmarkup.openUnifiedDiff",
     "criticmarkup.previousSuggestion",
     "criticmarkup.reject",
+    "criticmarkup.rejectAll",
     "criticmarkup.resolve",
   ]);
   assert.ok(vscode.registered.providers.has("criticmarkup-diff"));
   assert.ok(context.subscriptions.length > 6);
+});
+
+test("every command the extension registers is in the palette, and none is contributed twice", () => {
+  // A command registered but not contributed works only from a hover link; a command contributed
+  // but not registered shows in the palette and fails when picked.
+  const { vscode } = activated("plain prose\n");
+  const manifest = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "package.json"), "utf8"));
+  const contributed = manifest.contributes.commands.map((command) => command.command);
+  assert.deepEqual(contributed.sort(), [...vscode.registered.commands.keys()].sort());
 });
 
 test("the source is painted in the theme diff colours, and nothing is struck through", () => {
@@ -267,9 +281,61 @@ test("the accept command splices the whole unit away, leaving the new text", asy
 test("an action invoked without an offset acts at the cursor", async () => {
   const source = "a {--gone--} b\n";
   const { vscode, editor, applied } = activated(source);
-  editor.selection = { active: { offset: 5 } };
+  select(editor, 5, 5);
   await vscode.registered.commands.get("criticmarkup.reject")();
   assert.deepEqual(splices(applied), [[2, 12, "gone"]]);
+});
+
+/** Put the cursor at `start`, or a selection over `[start, end)`. */
+function select(editor, start, end = start) {
+  editor.selection = { active: { offset: start }, start: { offset: start }, end: { offset: end } };
+  editor.selections = [editor.selection];
+}
+
+test("an action over a selection settles every suggestion in it, in one edit", async () => {
+  const source = "One {--a--}, two {~~b~>c~~}, three {++d++}.\n";
+  const { vscode, editor, applied } = activated(source);
+  select(editor, source.indexOf("{--"), source.indexOf("{~~") + 4);
+  await vscode.registered.commands.get("criticmarkup.accept")();
+  assert.deepEqual(splices(applied), [
+    [source.indexOf("{--"), source.indexOf("{--") + "{--a--}".length, ""],
+    [source.indexOf("{~~"), source.indexOf("{~~") + "{~~b~>c~~}".length, "c"],
+  ]);
+});
+
+test("two cursors in one suggestion splice it once", async () => {
+  const source = "Fires on {~~12%~>11.4%~~} of traffic.\n";
+  const { vscode, editor, applied } = activated(source);
+  const inside = source.indexOf("12%");
+  editor.selections = [
+    { start: { offset: inside }, end: { offset: inside } },
+    { start: { offset: inside + 1 }, end: { offset: inside + 1 } },
+  ];
+  await vscode.registered.commands.get("criticmarkup.accept")();
+  assert.equal(applied.length, 1);
+});
+
+test("accept all and reject all settle the whole file, comments left standing", async () => {
+  const source = "One {--a--}, two {~~b~>c~~}. {==p==}{>>ask<<}\n";
+  const { vscode, applied } = activated(source);
+  await vscode.registered.commands.get("criticmarkup.acceptAll")();
+  assert.deepEqual(splices(applied), [
+    [source.indexOf("{--"), source.indexOf("{--") + "{--a--}".length, ""],
+    [source.indexOf("{~~"), source.indexOf("{~~") + "{~~b~>c~~}".length, "c"],
+  ]);
+
+  const rejected = activated(source);
+  await rejected.vscode.registered.commands.get("criticmarkup.rejectAll")();
+  assert.deepEqual(splices(rejected.applied), [
+    [source.indexOf("{--"), source.indexOf("{--") + "{--a--}".length, "a"],
+    [source.indexOf("{~~"), source.indexOf("{~~") + "{~~b~>c~~}".length, "b"],
+  ]);
+});
+
+test("accept all on a file with nothing to settle touches nothing", async () => {
+  const { vscode, applied } = activated("plain prose, {==quoted==}{>>remark<<}\n");
+  await vscode.registered.commands.get("criticmarkup.acceptAll")();
+  assert.deepEqual(applied, []);
 });
 
 test("an action on a stale offset changes nothing rather than splicing blind", async () => {
