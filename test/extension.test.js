@@ -168,7 +168,7 @@ test("activation registers the commands, the diff provider, and disposes what it
   assert.ok(context.subscriptions.length > 6);
 });
 
-test("the source is painted in the theme diff colours, old side struck through", () => {
+test("the source is painted in the theme diff colours, and nothing is struck through", () => {
   const source = "Fires on {~~12%~>11.4%~~}{>>recheck<<}.\n";
   const { painted } = activated(source);
   const under = (matches) => {
@@ -176,11 +176,13 @@ test("the source is painted in the theme diff colours, old side struck through",
     return (found?.[1] ?? []).map((at) => source.slice(at.start.offset, at.end.offset));
   };
   const background = (id) => (options) => options.backgroundColor?.id === id;
-  assert.deepEqual(
-    under((o) => o.textDecoration === "line-through"),
-    ["12%"],
-  );
+  assert.deepEqual(under(background("diffEditor.removedTextBackground")), ["12%"]);
   assert.deepEqual(under(background("diffEditor.insertedTextBackground")), ["11.4%"]);
+  // Every type that can land on a marker cancels the strikethrough markdown would otherwise
+  // draw over the whole `{~~…~~}`, and none of them adds one of its own.
+  const decorations = [...painted.keys()].map((type) => type.options.textDecoration);
+  assert.ok(!decorations.includes("line-through"), "the source view strikes nothing through");
+  assert.equal(decorations.filter((value) => value === "none !important").length, 3);
   assert.deepEqual(
     under((o) => o.fontStyle === "italic" && o.overviewRulerColor),
     ["recheck"],
@@ -232,11 +234,14 @@ test("hovering a suggestion offers the decision as trusted command links", () =>
   ]);
   const start = source.indexOf("{~~");
   const end = source.indexOf("{>>recompute<<}") + "{>>recompute<<}".length;
-  assert.ok(value.includes("**Substitution**"));
-  assert.ok(value.includes("```diff\n-12%\n+11.4%\n```"));
-  assert.ok(value.includes("> recompute"));
-  assert.ok(value.includes(`[Accept](command:criticmarkup.accept?%5B${start}%5D)`));
-  assert.ok(value.includes(`[Reject](command:criticmarkup.reject?%5B${start}%5D)`));
+  // The hover is the decision and nothing else: no preview to cover the sentence being read,
+  // and no text the document supplied inside a trusted markdown string.
+  assert.equal(
+    value,
+    `[Accept](command:criticmarkup.accept?%5B${start}%5D) · ` +
+      `[Reject](command:criticmarkup.reject?%5B${start}%5D)`,
+  );
+  assert.ok(!value.includes("recompute"));
   assert.deepEqual([hover.range.start.offset, hover.range.end.offset], [start, end]);
 });
 

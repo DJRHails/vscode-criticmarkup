@@ -45,6 +45,23 @@ function themed(id) {
 /**
  * One decoration type per region kind, every colour taken from the theme's diff palette so the
  * source view and the diff editor agree about what red and green mean.
+ *
+ * Nothing in the source view is struck through — the background carries the reading on its own,
+ * and the markers are right there in the text, so no signal rests on colour alone. Striking the
+ * old side as well only added a second line to a passage the red already spoke for (maintainer
+ * call, 2026-09-16). The `.diff` document and the preview keep their word-diff strikethrough,
+ * where there is no marker to read and `-` needs to look removed.
+ *
+ * So every type that can land on a marker says `text-decoration: none !important` out loud. The
+ * grammar takes a substitution's tildes away from markdown's strikethrough rule, but a grammar
+ * is registered by the window and a decoration by the extension host, so on the
+ * install-then-restart-the-host path the rule can still be in force when this paint happens —
+ * and a struck-through *green* reads as "delete this" about the text the suggestion is asking
+ * for.
+ *
+ * `!important` is load-bearing, not superstition. A decoration's rule and the token's
+ * strikethrough class land on the same span at the same specificity, and the token rule was
+ * seen winning the tie: plain `none` shipped in 0.3.2 and changed nothing on screen.
  */
 function buildTypes() {
   const ruler = vscode.OverviewRulerLane.Right;
@@ -54,17 +71,22 @@ function buildTypes() {
       ...options,
     });
   return {
-    delimiters: create({ opacity: "0.45", color: themed("descriptionForeground") }),
+    delimiters: create({
+      opacity: "0.45",
+      color: themed("descriptionForeground"),
+      textDecoration: "none !important",
+    }),
     inserted: create({
       backgroundColor: themed("diffEditor.insertedTextBackground"),
       overviewRulerColor: themed("editorOverviewRuler.addedForeground"),
       overviewRulerLane: ruler,
+      textDecoration: "none !important",
     }),
     deleted: create({
       backgroundColor: themed("diffEditor.removedTextBackground"),
-      textDecoration: "line-through",
       overviewRulerColor: themed("editorOverviewRuler.deletedForeground"),
       overviewRulerLane: ruler,
+      textDecoration: "none !important",
     }),
     highlighted: create({ backgroundColor: themed("editor.findMatchHighlightBackground") }),
     notes: create({
@@ -163,11 +185,11 @@ function actionLink(action) {
 }
 
 /**
- * The hover over a suggestion: what it would do, why the judge said so, and the decision.
+ * The hover over a suggestion: the decision, on one line.
  *
- * Only this extension's own commands are trusted in the markdown, and every piece of text the
- * document supplied is either escaped or inside a code block — a suggestion is untrusted input,
- * and a trusted hover that rendered it raw would let a document plant a link to any command.
+ * Only this extension's own commands are trusted in the markdown, and no text the document
+ * supplied is rendered here at all — a suggestion is untrusted input, and a trusted hover that
+ * rendered it raw would let a document plant a link to any command.
  */
 function provideHover(document, position) {
   const source = document.getText();
@@ -176,10 +198,7 @@ function provideHover(document, position) {
   const model = hoverModel(unit);
   const markdown = new vscode.MarkdownString();
   markdown.isTrusted = { enabledCommands: Object.values(ACTIONS).map((a) => a.command) };
-  markdown.appendMarkdown(`**${model.title}**\n\n`);
-  if (model.diff) markdown.appendCodeblock(model.diff, "diff");
-  for (const note of model.notes) markdown.appendMarkdown(`\n> ${note}\n`);
-  markdown.appendMarkdown(`\n\n${model.actions.map(actionLink).join(" · ")}`);
+  markdown.appendMarkdown(model.actions.map(actionLink).join(" · "));
   return new vscode.Hover(
     markdown,
     new vscode.Range(document.positionAt(model.range.start), document.positionAt(model.range.end)),

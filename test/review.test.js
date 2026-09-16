@@ -3,7 +3,7 @@
 const assert = require("node:assert/strict");
 const { test } = require("node:test");
 
-const { editFor, escapeMarkdown, hoverModel, unitAt } = require("../lib/review");
+const { editFor, hoverModel, unitAt } = require("../lib/review");
 
 /** Apply what the action at `offset` would splice, so a test reads as the text it leaves. */
 function act(source, offset, action) {
@@ -78,36 +78,26 @@ test("prose carrying no marker has nothing to act on", () => {
   assert.equal(unitAt("a {++b++} c", 0), null);
 });
 
-test("the hover previews the change as diff lines and carries the reasons", () => {
+test("the hover covers the whole decision, marker and its reason together", () => {
   const source = "Fires on {~~12%~>11.4%~~}{>>recompute<<}{>>done<<} of traffic.";
   const model = hoverModel(unitAt(source, 12));
-  assert.equal(model.title, "Substitution");
-  assert.equal(model.diff, "-12%\n+11.4%");
-  assert.deepEqual(model.notes, ["recompute", "done"]);
   assert.deepEqual(model.range, {
     start: source.indexOf("{~~"),
     end: source.indexOf("{>>done<<}") + "{>>done<<}".length,
   });
 });
 
-test("a thread hover counts its replies and previews no change", () => {
-  const source = "{==passage==}{>>one<<}{>>two<<}";
-  const model = hoverModel(unitAt(source, 16));
-  assert.equal(model.title, "Comment on this passage — 1 reply");
-  assert.equal(model.diff, "");
+test("a thread offers only Resolve", () => {
+  const model = hoverModel(unitAt("{==passage==}{>>one<<}{>>two<<}", 16));
   assert.deepEqual(
     model.actions.map((action) => action.command),
     ["criticmarkup.resolve"],
   );
 });
 
-test("an insertion previews as + lines only, a deletion as - lines only", () => {
-  assert.equal(hoverModel(unitAt("a {++new\nlines++}", 5)).diff, "+new\n+lines");
-  assert.equal(hoverModel(unitAt("a {--gone--}", 5)).diff, "-gone");
-});
-
-test("text from the document cannot smuggle markup into a hover", () => {
-  assert.equal(escapeMarkdown("[click](command:evil)"), "\\[click\\]\\(command:evil\\)");
+test("the hover model carries nothing but the decision and its range", () => {
+  // No text the document supplied reaches a trusted hover, so there is nothing to escape, and
+  // no preview to cover the sentence the suggestion is about.
   const model = hoverModel(unitAt("a {>>see [this](command:x)<<}", 8));
-  assert.ok(!model.notes[0].includes("](command:"));
+  assert.deepEqual(Object.keys(model).sort(), ["actions", "range"]);
 });
