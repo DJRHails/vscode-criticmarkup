@@ -148,7 +148,7 @@ test("a thread offers only Resolve", () => {
   const model = hoverModel(unitAt("{==passage==}{>>one<<}{>>two<<}", 16));
   assert.deepEqual(
     model.actions.map((action) => action.command),
-    ["criticmarkup.resolve"],
+    ["criticmarkup.resolve.comment"],
   );
 });
 

@@ -1,7 +1,7 @@
 {
   "name": "criticmarkup",
   "displayName": "CriticMarkup Diff",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Render CriticMarkup suggestions the way git renders a diff — decorated in the source, hunks in the Markdown preview, and a live read-only .diff of the document with every suggestion rejected against every suggestion accepted.",
   "categories": [
     "Other",
@@ -27,56 +27,74 @@
   "contributes": {
     "commands": [
       {
-        "command": "criticmarkup.openUnifiedDiff",
-        "title": "Open as unified diff",
+        "command": "criticmarkup.accept.suggestion",
+        "title": "Accept Suggestion",
+        "category": "CriticMarkup",
+        "enablement": "editorLangId == markdown"
+      },
+      {
+        "command": "criticmarkup.accept.selection",
+        "title": "Accept Selection",
+        "category": "CriticMarkup",
+        "enablement": "editorLangId == markdown"
+      },
+      {
+        "command": "criticmarkup.accept.all-suggestions",
+        "title": "Accept All Suggestions",
+        "category": "CriticMarkup",
+        "enablement": "editorLangId == markdown"
+      },
+      {
+        "command": "criticmarkup.reject.suggestion",
+        "title": "Reject Suggestion",
+        "category": "CriticMarkup",
+        "enablement": "editorLangId == markdown"
+      },
+      {
+        "command": "criticmarkup.reject.selection",
+        "title": "Reject Selection",
+        "category": "CriticMarkup",
+        "enablement": "editorLangId == markdown"
+      },
+      {
+        "command": "criticmarkup.reject.all-suggestions",
+        "title": "Reject All Suggestions",
+        "category": "CriticMarkup",
+        "enablement": "editorLangId == markdown"
+      },
+      {
+        "command": "criticmarkup.resolve.comment",
+        "title": "Resolve Comment",
+        "category": "CriticMarkup",
+        "enablement": "editorLangId == markdown"
+      },
+      {
+        "command": "criticmarkup.resolve.selection",
+        "title": "Resolve Selection",
+        "category": "CriticMarkup",
+        "enablement": "editorLangId == markdown"
+      },
+      {
+        "command": "criticmarkup.next",
+        "title": "Next Suggestion",
+        "category": "CriticMarkup"
+      },
+      {
+        "command": "criticmarkup.previous",
+        "title": "Previous Suggestion",
+        "category": "CriticMarkup"
+      },
+      {
+        "command": "criticmarkup.compare",
+        "title": "Compare As Diff",
         "category": "CriticMarkup",
         "icon": "$(diff)"
-      },
-      {
-        "command": "criticmarkup.nextSuggestion",
-        "title": "Next suggestion",
-        "category": "CriticMarkup"
-      },
-      {
-        "command": "criticmarkup.previousSuggestion",
-        "title": "Previous suggestion",
-        "category": "CriticMarkup"
-      },
-      {
-        "command": "criticmarkup.accept",
-        "title": "Accept the suggestion at the cursor, or every one in the selection",
-        "category": "CriticMarkup",
-        "enablement": "editorLangId == markdown"
-      },
-      {
-        "command": "criticmarkup.reject",
-        "title": "Reject the suggestion at the cursor, or every one in the selection",
-        "category": "CriticMarkup",
-        "enablement": "editorLangId == markdown"
-      },
-      {
-        "command": "criticmarkup.resolve",
-        "title": "Resolve the comment thread at the cursor, or every one in the selection",
-        "category": "CriticMarkup",
-        "enablement": "editorLangId == markdown"
-      },
-      {
-        "command": "criticmarkup.acceptAll",
-        "title": "Accept every suggestion in the file",
-        "category": "CriticMarkup",
-        "enablement": "editorLangId == markdown"
-      },
-      {
-        "command": "criticmarkup.rejectAll",
-        "title": "Reject every suggestion in the file",
-        "category": "CriticMarkup",
-        "enablement": "editorLangId == markdown"
       }
     ],
     "menus": {
       "editor/title": [
         {
-          "command": "criticmarkup.openUnifiedDiff",
+          "command": "criticmarkup.compare",
           "when": "editorLangId == markdown",
           "group": "navigation"
         }

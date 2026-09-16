@@ -160,14 +160,17 @@ function activated(text) {
 test("activation registers the commands, the diff provider, and disposes what it made", () => {
   const { vscode, context } = activated("plain prose\n");
   assert.deepEqual([...vscode.registered.commands.keys()].sort(), [
-    "criticmarkup.accept",
-    "criticmarkup.acceptAll",
-    "criticmarkup.nextSuggestion",
-    "criticmarkup.openUnifiedDiff",
-    "criticmarkup.previousSuggestion",
-    "criticmarkup.reject",
-    "criticmarkup.rejectAll",
-    "criticmarkup.resolve",
+    "criticmarkup.accept.all-suggestions",
+    "criticmarkup.accept.selection",
+    "criticmarkup.accept.suggestion",
+    "criticmarkup.compare",
+    "criticmarkup.next",
+    "criticmarkup.previous",
+    "criticmarkup.reject.all-suggestions",
+    "criticmarkup.reject.selection",
+    "criticmarkup.reject.suggestion",
+    "criticmarkup.resolve.comment",
+    "criticmarkup.resolve.selection",
   ]);
   assert.ok(vscode.registered.providers.has("criticmarkup-diff"));
   assert.ok(context.subscriptions.length > 6);
@@ -223,14 +226,14 @@ test("the diff document serves the rendering of the document it names", async ()
 
 test("next and previous step through suggestions and threads, and stop at the ends", () => {
   const { vscode, editor } = activated("a {++one++} b {==c==}{>>note<<} d\n");
-  const next = vscode.registered.commands.get("criticmarkup.nextSuggestion");
+  const next = vscode.registered.commands.get("criticmarkup.next");
   next();
   assert.equal(editor.selection.active.offset, 2);
   next();
   assert.equal(editor.selection.active.offset, 14);
   next();
   assert.equal(editor.selection.active.offset, 14, "nothing further to jump to");
-  vscode.registered.commands.get("criticmarkup.previousSuggestion")();
+  vscode.registered.commands.get("criticmarkup.previous")();
   assert.equal(editor.selection.active.offset, 2);
 });
 
@@ -242,9 +245,9 @@ test("hovering a suggestion offers the decision as trusted command links", () =>
   });
   const { value, isTrusted } = hover.contents;
   assert.deepEqual(isTrusted.enabledCommands, [
-    "criticmarkup.accept",
-    "criticmarkup.reject",
-    "criticmarkup.resolve",
+    "criticmarkup.accept.suggestion",
+    "criticmarkup.reject.suggestion",
+    "criticmarkup.resolve.comment",
   ]);
   const start = source.indexOf("{~~");
   const end = source.indexOf("{>>recompute<<}") + "{>>recompute<<}".length;
@@ -252,8 +255,8 @@ test("hovering a suggestion offers the decision as trusted command links", () =>
   // and no text the document supplied inside a trusted markdown string.
   assert.equal(
     value,
-    `[Accept](command:criticmarkup.accept?%5B${start}%5D) · ` +
-      `[Reject](command:criticmarkup.reject?%5B${start}%5D)`,
+    `[Accept](command:criticmarkup.accept.suggestion?%5B${start}%5D) · ` +
+      `[Reject](command:criticmarkup.reject.suggestion?%5B${start}%5D)`,
   );
   assert.ok(!value.includes("recompute"));
   assert.deepEqual([hover.range.start.offset, hover.range.end.offset], [start, end]);
@@ -273,7 +276,7 @@ function splices(applied) {
 test("the accept command splices the whole unit away, leaving the new text", async () => {
   const source = "Fires on {~~12%~>11.4%~~}{>>recompute<<} of traffic.\n";
   const { vscode, applied } = activated(source);
-  await vscode.registered.commands.get("criticmarkup.accept")(source.indexOf("{~~"));
+  await vscode.registered.commands.get("criticmarkup.accept.suggestion")(source.indexOf("{~~"));
   const end = source.indexOf("{>>recompute<<}") + "{>>recompute<<}".length;
   assert.deepEqual(splices(applied), [[source.indexOf("{~~"), end, "11.4%"]]);
 });
@@ -282,7 +285,7 @@ test("an action invoked without an offset acts at the cursor", async () => {
   const source = "a {--gone--} b\n";
   const { vscode, editor, applied } = activated(source);
   select(editor, 5, 5);
-  await vscode.registered.commands.get("criticmarkup.reject")();
+  await vscode.registered.commands.get("criticmarkup.reject.suggestion")();
   assert.deepEqual(splices(applied), [[2, 12, "gone"]]);
 });
 
@@ -292,14 +295,24 @@ function select(editor, start, end = start) {
   editor.selections = [editor.selection];
 }
 
-test("an action over a selection settles every suggestion in it, in one edit", async () => {
+test("Accept Selection settles every suggestion the selection touches, in one edit", async () => {
   const source = "One {--a--}, two {~~b~>c~~}, three {++d++}.\n";
   const { vscode, editor, applied } = activated(source);
   select(editor, source.indexOf("{--"), source.indexOf("{~~") + 4);
-  await vscode.registered.commands.get("criticmarkup.accept")();
+  await vscode.registered.commands.get("criticmarkup.accept.selection")();
   assert.deepEqual(splices(applied), [
     [source.indexOf("{--"), source.indexOf("{--") + "{--a--}".length, ""],
     [source.indexOf("{~~"), source.indexOf("{~~") + "{~~b~>c~~}".length, "c"],
+  ]);
+});
+
+test("Accept Suggestion takes only the one at the cursor, whatever is selected", async () => {
+  const source = "One {--a--}, two {~~b~>c~~}, three {++d++}.\n";
+  const { vscode, editor, applied } = activated(source);
+  select(editor, source.indexOf("{--") + 3, source.indexOf("{~~") + 4);
+  await vscode.registered.commands.get("criticmarkup.accept.suggestion")();
+  assert.deepEqual(splices(applied), [
+    [source.indexOf("{--"), source.indexOf("{--") + "{--a--}".length, ""],
   ]);
 });
 
@@ -311,21 +324,21 @@ test("two cursors in one suggestion splice it once", async () => {
     { start: { offset: inside }, end: { offset: inside } },
     { start: { offset: inside + 1 }, end: { offset: inside + 1 } },
   ];
-  await vscode.registered.commands.get("criticmarkup.accept")();
+  await vscode.registered.commands.get("criticmarkup.accept.selection")();
   assert.equal(applied.length, 1);
 });
 
 test("accept all and reject all settle the whole file, comments left standing", async () => {
   const source = "One {--a--}, two {~~b~>c~~}. {==p==}{>>ask<<}\n";
   const { vscode, applied } = activated(source);
-  await vscode.registered.commands.get("criticmarkup.acceptAll")();
+  await vscode.registered.commands.get("criticmarkup.accept.all-suggestions")();
   assert.deepEqual(splices(applied), [
     [source.indexOf("{--"), source.indexOf("{--") + "{--a--}".length, ""],
     [source.indexOf("{~~"), source.indexOf("{~~") + "{~~b~>c~~}".length, "c"],
   ]);
 
   const rejected = activated(source);
-  await rejected.vscode.registered.commands.get("criticmarkup.rejectAll")();
+  await rejected.vscode.registered.commands.get("criticmarkup.reject.all-suggestions")();
   assert.deepEqual(splices(rejected.applied), [
     [source.indexOf("{--"), source.indexOf("{--") + "{--a--}".length, "a"],
     [source.indexOf("{~~"), source.indexOf("{~~") + "{~~b~>c~~}".length, "b"],
@@ -334,14 +347,14 @@ test("accept all and reject all settle the whole file, comments left standing", 
 
 test("accept all on a file with nothing to settle touches nothing", async () => {
   const { vscode, applied } = activated("plain prose, {==quoted==}{>>remark<<}\n");
-  await vscode.registered.commands.get("criticmarkup.acceptAll")();
+  await vscode.registered.commands.get("criticmarkup.accept.all-suggestions")();
   assert.deepEqual(applied, []);
 });
 
 test("an action on a stale offset changes nothing rather than splicing blind", async () => {
   const { vscode, applied } = activated("a {--gone--} b\n");
-  await vscode.registered.commands.get("criticmarkup.accept")(0);
-  await vscode.registered.commands.get("criticmarkup.resolve")(2);
+  await vscode.registered.commands.get("criticmarkup.accept.suggestion")(0);
+  await vscode.registered.commands.get("criticmarkup.resolve.comment")(2);
   assert.deepEqual(applied, []);
 });
 

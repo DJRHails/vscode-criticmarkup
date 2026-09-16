@@ -14,7 +14,7 @@ against real `git diff`, hunk for hunk, in the test suite.
 
 ## The three surfaces
 
-- **A live `.diff` document** (`CriticMarkup: Open as unified diff`, or the ⟚ button in the
+- **A live `.diff` document** (`CriticMarkup: Compare As Diff`, or the ⟚ button in the
   editor title bar). Opens beside the source, highlighted by VS Code's own `diff` grammar,
   re-rendered as you type. `@@` headers carry the enclosing markdown heading, three lines of
   context, `\ No newline at end of file` where it belongs. Strip the `#` review notes and it is
@@ -29,7 +29,7 @@ against real `git diff`, hunk for hunk, in the test suite.
   ruler so you can see where they are in a long file. Nothing here is struck through — the
   markers are in the text in front of you, so the background is signal enough.
 
-`CriticMarkup: Next suggestion` / `Previous suggestion` step through the review points — one per
+`CriticMarkup: Next Suggestion` / `Previous Suggestion` step through the review points — one per
 suggestion, one per comment thread.
 
 ## Deciding, from the hover
@@ -43,10 +43,19 @@ The hover deliberately does not preview the change or repeat the reason. Both ar
 screen — the marker is decorated in place and its note renders beside it — and a popover big
 enough to hold them covers the sentence you are reading it against.
 
-**In bulk, the way the merge-conflict editor does it.** `Accept` and `Reject` from the palette
-take the suggestion at the cursor, or — with text selected — every suggestion the selection
-touches, in one edit and so one undo. `CriticMarkup: Accept every suggestion in the file` and
-its `Reject` twin do the whole document.
+**In bulk, the way the merge-conflict editor does it** — same command shape, same names, so the
+tool you already use for this kind of decision reads the same here:
+
+| CriticMarkup                                        | the built-in it mirrors                      |
+| --------------------------------------------------- | -------------------------------------------- |
+| `Accept Suggestion` / `Reject Suggestion`           | `Accept Current` / `Accept Incoming`         |
+| `Accept Selection` / `Reject Selection`             | `Accept Selection`                           |
+| `Accept All Suggestions` / `Reject All Suggestions` | `Accept All Current` / `Accept All Incoming` |
+| `Resolve Comment` / `Resolve Selection`             | — no counterpart, a remark is not a conflict |
+| `Next Suggestion` / `Previous Suggestion`           | `Next Conflict` / `Previous Conflict`        |
+| `Compare As Diff`                                   | `Compare Current Conflict`                   |
+
+Each of them is one `edit`, so settling thirty suggestions is one undo, not thirty.
 
 A selection that only clips a marker still settles the whole of it: half a marker is not a
 decision, and splicing one would leave the other half behind as broken markup. Comment threads
