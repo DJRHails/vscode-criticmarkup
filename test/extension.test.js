@@ -160,13 +160,13 @@ function activated(text) {
 test("activation registers the commands, the diff provider, and disposes what it made", () => {
   const { vscode, context } = activated("plain prose\n");
   assert.deepEqual([...vscode.registered.commands.keys()].sort(), [
-    "criticmarkup.accept.all-suggestions",
+    "criticmarkup.accept.all",
     "criticmarkup.accept.selection",
     "criticmarkup.accept.suggestion",
     "criticmarkup.compare",
     "criticmarkup.next",
     "criticmarkup.previous",
-    "criticmarkup.reject.all-suggestions",
+    "criticmarkup.reject.all",
     "criticmarkup.reject.selection",
     "criticmarkup.reject.suggestion",
     "criticmarkup.resolve.comment",
@@ -331,14 +331,14 @@ test("two cursors in one suggestion splice it once", async () => {
 test("accept all and reject all settle the whole file, comments left standing", async () => {
   const source = "One {--a--}, two {~~b~>c~~}. {==p==}{>>ask<<}\n";
   const { vscode, applied } = activated(source);
-  await vscode.registered.commands.get("criticmarkup.accept.all-suggestions")();
+  await vscode.registered.commands.get("criticmarkup.accept.all")();
   assert.deepEqual(splices(applied), [
     [source.indexOf("{--"), source.indexOf("{--") + "{--a--}".length, ""],
     [source.indexOf("{~~"), source.indexOf("{~~") + "{~~b~>c~~}".length, "c"],
   ]);
 
   const rejected = activated(source);
-  await rejected.vscode.registered.commands.get("criticmarkup.reject.all-suggestions")();
+  await rejected.vscode.registered.commands.get("criticmarkup.reject.all")();
   assert.deepEqual(splices(rejected.applied), [
     [source.indexOf("{--"), source.indexOf("{--") + "{--a--}".length, "a"],
     [source.indexOf("{~~"), source.indexOf("{~~") + "{~~b~>c~~}".length, "b"],
@@ -347,7 +347,7 @@ test("accept all and reject all settle the whole file, comments left standing", 
 
 test("accept all on a file with nothing to settle touches nothing", async () => {
   const { vscode, applied } = activated("plain prose, {==quoted==}{>>remark<<}\n");
-  await vscode.registered.commands.get("criticmarkup.accept.all-suggestions")();
+  await vscode.registered.commands.get("criticmarkup.accept.all")();
   assert.deepEqual(applied, []);
 });
 

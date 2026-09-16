@@ -1,7 +1,7 @@
 {
   "name": "criticmarkup",
   "displayName": "CriticMarkup Diff",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "Render CriticMarkup suggestions the way git renders a diff — decorated in the source, hunks in the Markdown preview, and a live read-only .diff of the document with every suggestion rejected against every suggestion accepted.",
   "categories": [
     "Other",
@@ -39,8 +39,8 @@
         "enablement": "editorLangId == markdown"
       },
       {
-        "command": "criticmarkup.accept.all-suggestions",
-        "title": "Accept All Suggestions",
+        "command": "criticmarkup.accept.all",
+        "title": "Accept All",
         "category": "CriticMarkup",
         "enablement": "editorLangId == markdown"
       },
@@ -57,8 +57,8 @@
         "enablement": "editorLangId == markdown"
       },
       {
-        "command": "criticmarkup.reject.all-suggestions",
-        "title": "Reject All Suggestions",
+        "command": "criticmarkup.reject.all",
+        "title": "Reject All",
         "category": "CriticMarkup",
         "enablement": "editorLangId == markdown"
       },

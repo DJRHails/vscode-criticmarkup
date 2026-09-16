@@ -46,14 +46,14 @@ enough to hold them covers the sentence you are reading it against.
 **In bulk, the way the merge-conflict editor does it** — same command shape, same names, so the
 tool you already use for this kind of decision reads the same here:
 
-| CriticMarkup                                        | the built-in it mirrors                      |
-| --------------------------------------------------- | -------------------------------------------- |
-| `Accept Suggestion` / `Reject Suggestion`           | `Accept Current` / `Accept Incoming`         |
-| `Accept Selection` / `Reject Selection`             | `Accept Selection`                           |
-| `Accept All Suggestions` / `Reject All Suggestions` | `Accept All Current` / `Accept All Incoming` |
-| `Resolve Comment` / `Resolve Selection`             | — no counterpart, a remark is not a conflict |
-| `Next Suggestion` / `Previous Suggestion`           | `Next Conflict` / `Previous Conflict`        |
-| `Compare As Diff`                                   | `Compare Current Conflict`                   |
+| CriticMarkup                              | the built-in it mirrors                      |
+| ----------------------------------------- | -------------------------------------------- |
+| `Accept Suggestion` / `Reject Suggestion` | `Accept Current` / `Accept Incoming`         |
+| `Accept Selection` / `Reject Selection`   | `Accept Selection`                           |
+| `Accept All` / `Reject All`               | `Accept All Current` / `Accept All Incoming` |
+| `Resolve Comment` / `Resolve Selection`   | — no counterpart, a remark is not a conflict |
+| `Next Suggestion` / `Previous Suggestion` | `Next Conflict` / `Previous Conflict`        |
+| `Compare As Diff`                         | `Compare Current Conflict`                   |
 
 Each of them is one `edit`, so settling thirty suggestions is one undo, not thirty.
 
