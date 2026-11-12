@@ -4,3 +4,4 @@ test/
 *.vsix
 .vscode-test/
 tools/
+.github/
